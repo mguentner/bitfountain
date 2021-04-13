@@ -1,0 +1,25 @@
+.file-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40vh;
+}
+
+.file-info {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+}
+
+.svg-fountain {
+  margin-top: 4rem;
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  width: 80vw;
+}
+
+.svg-fountain svg {
+  width: 92%;
+}

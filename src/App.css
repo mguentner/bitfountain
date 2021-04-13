@@ -1,0 +1,22 @@
+.app {
+  height: 100%;
+}
+
+button {
+  background-color: black;
+  border: 0;
+  color: white;
+}
+
+.mode-switcher {
+  text-align: center;
+}
+
+.mode-switcher button {
+  margin: 0.5rem;
+  font-size: 2rem;
+}
+
+.mode-switcher .selected {
+  background-color: green;
+}
