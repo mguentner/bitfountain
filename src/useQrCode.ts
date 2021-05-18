@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react'
+import React, { useMemo, useEffect, useCallback } from 'react'
 import { createComlink } from 'react-use-comlink'
 import { transfer } from 'comlink'
 import { parseQrcode } from './workers/qrcode.worker'
@@ -44,7 +44,6 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
     if (video && captureStream) {
       if ('srcObject' in video) {
         video.srcObject = captureStream
-        video.play()
       } else if ('src' in video) {
         objectUrl = URL.createObjectURL(captureStream)
         video!.src = objectUrl

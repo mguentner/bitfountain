@@ -16,6 +16,27 @@ import { EncodeHintType } from "@zxing/library";
 import "./Transmitter.css";
 import ErrorCorrectionLevel from "@zxing/library/esm/core/qrcode/decoder/ErrorCorrectionLevel";
 
+const writeSVGToRef = (data: string, ref: React.RefObject<HTMLDivElement>) => {
+  const encodingHints = new Map([
+    [EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M],
+  ]);
+  if (ref && ref.current && data) {
+    const codeWriter = new BrowserQRCodeSvgWriter();
+    const qr = codeWriter.write(data, 1024, 1024, encodingHints);
+    qr.setAttribute("viewBox", "0 70 1024 1024");
+    qr.removeAttribute("height");
+    qr.removeAttribute("width");
+    while (ref.current.firstChild) {
+      ref.current.removeChild(ref.current.firstChild);
+    }
+    ref.current.appendChild(qr);
+  } else if (ref && ref.current && !data) {
+    while (ref.current.firstChild) {
+      ref.current.removeChild(ref.current.firstChild);
+    }
+  }
+};
+
 export const TransmitterLocation = ({
   onNextClick,
 }: {
@@ -25,31 +46,16 @@ export const TransmitterLocation = ({
   const url = window.location.origin + "?p=receiver";
 
   useEffect(() => {
-    const encodingHints = new Map([
-      [EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M],
-    ]);
-    if (svgRef && svgRef.current && url) {
-      const codeWriter = new BrowserQRCodeSvgWriter();
-      const qr = codeWriter.write(url, 100, 100, encodingHints);
-      qr.setAttribute("viewBox", "0 0 100 100");
-      qr.removeAttribute("height");
-      qr.removeAttribute("width");
-      while (svgRef.current.firstChild) {
-        svgRef.current.removeChild(svgRef.current.firstChild);
-      }
-      svgRef.current.appendChild(qr);
-    } else if (svgRef && svgRef.current && !url) {
-      while (svgRef.current.firstChild) {
-        svgRef.current.removeChild(svgRef.current.firstChild);
-      }
-    }
+    writeSVGToRef(url, svgRef);
   }, [url, svgRef]);
 
   return (
     <div>
       <h1>Navigate to {url} on the receiver device or scan the code.</h1>
       Press <button onClick={() => onNextClick()}>Next</button> when done.
-      <div className="svg-fountain" ref={svgRef} />
+      <div className="svg-fountain-container" onClick={() => onNextClick()}>
+        <div className="svg-fountain" ref={svgRef} />
+      </div>
     </div>
   );
 };
@@ -67,26 +73,8 @@ export const Transmitter: FunctionComponent = () => {
   const [processing, setProcessing] = useState(false);
   const [navigated, setNavigated] = useState(false);
 
-  const encodingHints = new Map([
-    [EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M],
-  ]);
-
   useEffect(() => {
-    if (svgRef && svgRef.current && data) {
-      const codeWriter = new BrowserQRCodeSvgWriter();
-      const qr = codeWriter.write(data, 100, 100, encodingHints);
-      qr.setAttribute("viewBox", "0 0 100 100");
-      qr.removeAttribute("height");
-      qr.removeAttribute("width");
-      while (svgRef.current.firstChild) {
-        svgRef.current.removeChild(svgRef.current.firstChild);
-      }
-      svgRef.current.appendChild(qr);
-    } else if (svgRef && svgRef.current && !data) {
-      while (svgRef.current.firstChild) {
-        svgRef.current.removeChild(svgRef.current.firstChild);
-      }
-    }
+    data && writeSVGToRef(data, svgRef);
   }, [data]);
 
   useInterval(async () => {
@@ -126,7 +114,9 @@ export const Transmitter: FunctionComponent = () => {
                 Select different File
               </button>
             </div>
-            <div className="svg-fountain" ref={svgRef} />
+            <div className="svg-fountain-container">
+              <div className="svg-fountain" ref={svgRef} />
+            </div>
           </div>
         ) : (
           <TransmitterLocation onNextClick={() => setNavigated(true)} />

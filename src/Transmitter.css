@@ -8,18 +8,31 @@
 .file-info {
   margin-top: 0.5rem;
   display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.file-info button {
+  margin-top: 0.5rem;
+}
+
+.svg-fountain-container {
+  display: flex;
   align-items: start;
   justify-content: center;
 }
 
 .svg-fountain {
-  margin-top: 4rem;
-  display: flex;
-  align-items: start;
-  justify-content: center;
-  width: 80vw;
+  position: relative;
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  padding: 0;
 }
 
 .svg-fountain svg {
   width: 92%;
+  position: absolute;
+  height: 100%;
+  left: 0;
+  top: 0;
 }
