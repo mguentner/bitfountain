@@ -2,7 +2,12 @@
     "compilerOptions": {
         "module": "commonjs",
         "target": "esnext",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "lib": [
+            "esnext",
+            "dom",
+            "dom.iterable",
+        ]
     },
     "include": ["src/test/*.ts"]
   }

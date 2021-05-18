@@ -32,6 +32,28 @@ export interface Slice {
 const seperator = "|"
 const probabilityOfPermutation = [1, 0.6, 0.2, 0.4, 0.4];
 
+const solitonDistributionMax = 10
+const solitonDistribution = (i: number, K: number): number => {
+    if (i === 1) {
+        return 1/K;
+    } else {
+        return 1/(i*(i-1))
+    }
+}
+
+export const solitonDistributionK = Array.from(Array(solitonDistributionMax).keys()).map((i) => [i+1, solitonDistribution(i+1, solitonDistributionMax)]).sort((a,b) => b[1] - a[1])
+export const solitonDistributionKAggregated = (() => {
+    let sum = 0;
+    return solitonDistributionK.map((e) => [e[0], sum += e[1]]).reverse();
+})();
+
+export const sampleSolitonDistributionK = (): number => {
+    const randValue = Math.random()
+    let index = 0
+    for (; index < solitonDistributionKAggregated.length && solitonDistributionKAggregated[index][1] >= randValue; index++) {}
+    return solitonDistributionKAggregated[index-1][0];
+}
+
 export const hashFileSHA256B64 = async (blob: Blob): Promise<string> => {
     const ab = await blob.arrayBuffer();
     const sha = new jsSHA("SHA-256", "UINT8ARRAY");
@@ -63,12 +85,8 @@ export const getNextPermutation = (file: File, sliceSize: number): number[] => {
     const maxSliceCount = getMaxSliceCount(file, sliceSize);
     const allKeys = Array.from(Array(maxSliceCount).keys())
     const randomSorted = allKeys.sort((a,b) => Math.random() - 0.5)
-    for (let i = 0; i < probabilityOfPermutation.length; i+=1) {
-        if (Math.random() < probabilityOfPermutation[i]) {
-            result.push(randomSorted[i]);
-        } else {
-            break;
-        }
+    for (let i = 0; i < sampleSolitonDistributionK() ; i++) {
+        result.push(randomSorted[i]);
     }
     return result;
 }

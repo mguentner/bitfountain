@@ -103,3 +103,32 @@ describe("decodeSlices", () => {
         expect(hash).eq(receivedHash)
     })
 })
+
+describe("solitonDistribution", () => {
+    it("sums up to 1", () => {
+        const sum = FileUtils.solitonDistributionK.map((e) => e[1]).reduce((p, current) => p+current)
+        expect(sum).lessThanOrEqual(1.01)
+        expect(sum).greaterThanOrEqual(0.99)
+    })
+    it("aggregates correctly", () => {
+        const lastElement = FileUtils.solitonDistributionKAggregated.sort((a,b) => b[1] - a[1])[0]
+        expect(lastElement[1]).lessThanOrEqual(1.01)
+        expect(lastElement[1]).greaterThanOrEqual(0.99)
+    })
+    it("samples correctly", () => {
+        const res = {}
+        const count = 10000;
+        for (let i=0; i<count; i++) {
+            const sample = FileUtils.sampleSolitonDistributionK();
+            if (res[sample] !== undefined) {
+                res[sample] += 1
+            } else {
+                res[sample] = 1
+            }
+        }
+        const percentage = Object.fromEntries(Object.entries(res).map(([key, value]) => [key, value as number/count] ))
+        console.log(percentage)
+        // check manually
+    })
+
+})
