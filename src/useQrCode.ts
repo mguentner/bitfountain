@@ -1,14 +1,68 @@
-import React, { useMemo, useEffect, useCallback } from 'react'
-import { createComlink } from 'react-use-comlink'
-import { transfer } from 'comlink'
+import React, { useMemo, useEffect, useCallback, useState } from 'react'
+import { wrap, Remote, transfer, releaseProxy } from 'comlink'
 import { parseQrcode } from './workers/qrcode.worker'
 import { useUserMedia } from 'use-user-media'
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import QrCodeWorker from "worker-loader!./workers/qrcode.worker";
 
-const useComlink = createComlink<typeof parseQrcode>(() => {
-  return new QrCodeWorker();
-})
+let lastI = 0;
+let count = 0;
+
+const createQrWorker = ()  => {
+  const worker = new QrCodeWorker();
+  const proxy = wrap<typeof parseQrcode>(worker);
+
+  const cleanup = () => {
+    proxy[releaseProxy]();
+    worker.terminate();
+  };
+
+  return { proxy, cleanup };
+}
+
+const useWorkerPool = (size: number) => {
+  const [pool, setPool] = useState<{ id: number, worker: {
+    proxy: Remote<(data: ImageData) => string | null>,
+    cleanup: () => void} ; available: boolean }[]>([]);
+
+  useEffect(() => {
+    const l = [];
+    for (let i=0; i< size; i++) {
+      const worker = createQrWorker()
+      l.push({ id: i, worker: worker, available: true })
+    }
+    setPool(l)
+    return () => {
+      for (const e of pool) {
+          e.worker.cleanup()
+      }
+      setPool([])
+    }
+  }, [size])
+
+  const requestProxy = () => {
+    for (const e of pool) {
+      if (e.available) {
+        e.available = false;
+        return { id: e.id, proxy: e.worker.proxy };
+      }
+    }
+    return { id: undefined, proxy: undefined };
+  }
+
+  const returnProxy = (id: number) => {
+    for (const e of pool) {
+      if (e.id === id) {
+        e.available = true;
+      }
+    }
+  }
+
+  return {
+    requestProxy,
+    returnProxy
+  }
+}
 
 function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTMLVideoElement>, onResult: (data: string) => void) {
   const constraints = { audio: false, video: {
@@ -28,7 +82,7 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
     }
   })();
 
-  const { proxy } = useComlink()
+  const { requestProxy, returnProxy } = useWorkerPool(10)
 
   const stop = useCallback(() => {
     if (stream) {
@@ -79,14 +133,25 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
           let imageData: ImageData | null = context.getImageData(0, 0, width, height)
 
           if (imageData && imageData.data) {
-            (proxy(transfer(imageData, [imageData.data.buffer])) as PromiseLike<string | null>).then((res) => {
-              imageData = null
-              context = null
-
-              if (res) {
-                onResult(res)
-              }
-            })
+            if (count++ % 100 === 0) {
+              console.log((new Date).toString(), Date.now()-lastI)
+            }
+            lastI=Date.now()
+            const { proxy, id } = requestProxy();
+            if (proxy && id) {
+              const started = Date.now();
+              (proxy(transfer(imageData, [imageData.data.buffer])) as PromiseLike<string | null>).then((res) => {
+                imageData = null
+                context = null
+                returnProxy(id);
+                if (res) {
+                  console.log(`Decode took ${Date.now()-started} ms using worker ${id}`)
+                  onResult(res)
+                }
+              })
+            } else {
+              console.log("no worker available")
+            }
           }
         }
       }
@@ -122,9 +187,10 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
   }, [
     videoRef,
     onResult,
-    proxy,
     dimensions?.width,
-    dimensions?.height
+    dimensions?.height,
+    requestProxy,
+    returnProxy
   ])
 
   return useMemo(() => {
