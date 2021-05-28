@@ -14,8 +14,12 @@ export interface Descriptor {
 
 export type SliceStore = Slice[]
 
+export const isInStore = (store: SliceStore, slice: Slice) => {
+    return store.filter((s) => s.identifiers === slice.identifiers).length !== 0;
+}
+
 export const insertToStore = (store:SliceStore, slice: Slice) => {
-    if (store.filter((s) => s.identifiers === slice.identifiers).length === 0) {
+    if (!isInStore(store, slice)) {
         store.push(slice)
     }
 }
@@ -30,8 +34,6 @@ export interface Slice {
 }
 
 const seperator = "|"
-const probabilityOfPermutation = [1, 0.6, 0.2, 0.4, 0.4];
-
 const solitonDistributionMax = 10
 const solitonDistribution = (i: number, K: number): number => {
     if (i === 1) {
@@ -85,7 +87,7 @@ export const getNextPermutation = (file: File, sliceSize: number): number[] => {
     const maxSliceCount = getMaxSliceCount(file, sliceSize);
     const allKeys = Array.from(Array(maxSliceCount).keys())
     const randomSorted = allKeys.sort((a,b) => Math.random() - 0.5)
-    for (let i = 0; i < sampleSolitonDistributionK() ; i++) {
+    for (let i = 0; i < sampleSolitonDistributionK(); i++) {
         result.push(randomSorted[i]);
     }
     return result;
@@ -104,16 +106,16 @@ export const getDescriptor = (file: File, sha256: string, sliceSize: number): De
 }
 
 export const marshaledNominalSlizeSize = (nominalSlizeSize: number) => {
-    return Math.ceil("DATA:".length + nominalSlizeSize*4/3)
+    return Math.ceil("P:".length + nominalSlizeSize*4/3)
 }
 
 export const marshalDescriptor = (descriptor: Descriptor, nominalSliceSize: number) => {
     const encoder = new TextEncoder()
-    const prePadded =  "DESC:" + b64encode(encoder.encode(JSON.stringify(descriptor)), undefined, undefined)
+    const prePadded =  "D:" + b64encode(encoder.encode(JSON.stringify(descriptor)), undefined, undefined)
     if (prePadded.length < marshaledNominalSlizeSize(nominalSliceSize)) {
        const delta = marshaledNominalSlizeSize(nominalSliceSize) - prePadded.length
        const padding = Array(Math.round(3/4*delta)).join("x"); // base64 is 4/3 larger than its input
-       return "DESC:" + b64encode(encoder.encode(JSON.stringify({...descriptor, padding: padding})), undefined, undefined)
+       return "D:" + b64encode(encoder.encode(JSON.stringify({...descriptor, padding: padding})), undefined, undefined)
     } else {
         console.warn("Descriptor longer than slice.")
         return prePadded
@@ -121,7 +123,7 @@ export const marshalDescriptor = (descriptor: Descriptor, nominalSliceSize: numb
 }
 
 export const unmarshalDescriptor = (data: string) => {
-    if (! data.startsWith("DESC:")) {
+    if (! data.startsWith("D:")) {
         throw Error("Not a descriptor")
     } else {
         const [, payload] = data.split(":", 2);
@@ -157,7 +159,7 @@ export const marshalSlice = async (file: File, sliceSize: number, sliceIdentifie
     }
     const sliceAsB64 = b64encode(payload.buffer, undefined, undefined);
     const identifier = marshalSliceIdentifiers(sliceIdentifiers)
-    const marshaled = `DATA:${identifier}:` + sliceAsB64;
+    const marshaled = `P:${identifier}:` + sliceAsB64;
     if (marshaled.length < marshaledNominalSlizeSize(sliceSize)) {
         return marshaled + ":" + Array(marshaledNominalSlizeSize(sliceSize) - marshaled.length - 1).join("x")
     } else {
@@ -166,7 +168,7 @@ export const marshalSlice = async (file: File, sliceSize: number, sliceIdentifie
 }
 
 export const unmarshalSlice = (data: string): Slice => {
-    if (! data.startsWith("DATA:")) {
+    if (! data.startsWith("P:")) {
         throw Error("Not a data slice")
     } else {
         const [, sliceIdentifiers, payload, ...rest] = data.split(":")
