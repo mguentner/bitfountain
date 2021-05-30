@@ -147,7 +147,11 @@ export const Receiver: FunctionComponent = () => {
               {progressBar}
               <div className="descriptor">
                 <span>Name: {descriptor.name}</span>
-                <span>Size: {descriptor.totalSlices}</span>
+                <span>Size: {descriptor.totalByteSize} Bytes</span>
+                <span>
+                  Slices: {availableSlices.length}/{descriptor.totalSlices}{" "}
+                  {totalSlices}
+                </span>
                 <span>Hash: {descriptor.sha256.slice(0, 10)}...</span>
               </div>
             </div>
