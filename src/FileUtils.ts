@@ -12,10 +12,17 @@ export interface Descriptor {
     padding: string
 }
 
+const isEqual = (a: number[], b: number[]): boolean => {
+    if (a.length !== b.length) {
+        return false;
+    }
+    return a.every((val, index) => val === b[index]);
+}
+
 export type SliceStore = Slice[]
 
 export const isInStore = (store: SliceStore, slice: Slice) => {
-    return store.filter((s) => s.identifiers === slice.identifiers).length !== 0;
+    return store.filter((s) => isEqual(s.identifiers, slice.identifiers)).length !== 0;
 }
 
 export const insertToStore = (store:SliceStore, slice: Slice) => {
@@ -25,11 +32,11 @@ export const insertToStore = (store:SliceStore, slice: Slice) => {
 }
 
 export const individualSlicesInStore = (store: SliceStore) => {
-    return store.map((slice) => unmarshalSliceIdentifiers(slice.identifiers)).filter((ids) => ids.length === 1).map((ids) => ids[0]);
+    return store.map((slice) => slice.identifiers).filter((ids) => ids.length === 1).map((ids) => ids[0]);
 }
 
 export interface Slice {
-    identifiers: string
+    identifiers: number[]
     payload: Uint8Array
 }
 
@@ -68,7 +75,7 @@ export const marshalSliceIdentifiers = (identifiers: number[]): string => {
 }
 
 export const unmarshalSliceIdentifiers = (identifiers: string): number[] => {
-    return identifiers.split(seperator).map((v) => parseInt(v, 36))
+    return identifiers.split(seperator).map((v) => parseInt(v, 36)).sort()
 }
 
 export const getSlice = (file: File, sliceSize: number, slice: number): Blob => {
@@ -172,22 +179,21 @@ export const unmarshalSlice = (data: string): Slice => {
         throw Error("Not a data slice")
     } else {
         const [, sliceIdentifiers, payload, ...rest] = data.split(":")
-        return { identifiers: sliceIdentifiers, payload: b64decode(payload) }
+        return { identifiers: unmarshalSliceIdentifiers(sliceIdentifiers), payload: b64decode(payload) }
     }
 }
 
 export const decodeSlices = (store: SliceStore, sliceSize: number, sliceToBeDecoded: Slice): Slice[] => {
     const result: SliceStore = [];
     store.forEach((sliceInStore) => {
-        const storeIdentifiers = unmarshalSliceIdentifiers(sliceInStore.identifiers);
-        const toBeDecodedIdentifiers = unmarshalSliceIdentifiers(sliceToBeDecoded.identifiers);
+        const storeIdentifiers = sliceInStore.identifiers;
+        const toBeDecodedIdentifiers = sliceToBeDecoded.identifiers;
         const uniqueIdentifiers = [...storeIdentifiers, ...toBeDecodedIdentifiers].filter((e) => {
             return (storeIdentifiers.indexOf(e) === -1 && toBeDecodedIdentifiers.indexOf(e) !== -1) || (
                 storeIdentifiers.indexOf(e) !== -1 && toBeDecodedIdentifiers.indexOf(e) === -1
             )
         })
-        const marshaledUniqueIdentifiers = marshalSliceIdentifiers(uniqueIdentifiers);
-        if (uniqueIdentifiers.length === 1 && store.filter((s) => s.identifiers === marshaledUniqueIdentifiers).length === 0) {
+        if (uniqueIdentifiers.length === 1 && store.filter((s) => isEqual(s.identifiers, uniqueIdentifiers)).length === 0) {
             // e.g. [2,3] and [2] => unique is 3
             // e.g. [2,3,4] and [2,3] => unique is 4 
             const decodedPayload =  new Uint8Array(sliceSize)
@@ -204,7 +210,7 @@ export const decodeSlices = (store: SliceStore, sliceSize: number, sliceToBeDeco
                 }
             }
             const newSlice: Slice = {
-                identifiers: marshaledUniqueIdentifiers,
+                identifiers: uniqueIdentifiers,
                 payload: decodedPayload
             }
             result.push(newSlice);
@@ -228,8 +234,8 @@ const mergeUint8Array = (a: Uint8Array, b: Uint8Array): Uint8Array => {
 export const assemblePayload = (store: SliceStore, descriptor: Descriptor): Blob | null => {
     if (payloadIsReady(store, descriptor)) {
         let all = new Uint8Array(0);
-        store.filter((s) => unmarshalSliceIdentifiers(s.identifiers).length === 1).sort((a,b) => {
-            return (unmarshalSliceIdentifiers(a.identifiers)[0]) - (unmarshalSliceIdentifiers(b.identifiers)[0])
+        store.filter((s) => s.identifiers.length === 1).sort((a,b) => {
+            return (a.identifiers[0]) - (b.identifiers[0])
         }).forEach((s) => {
             all = mergeUint8Array(all, s.payload);
         })

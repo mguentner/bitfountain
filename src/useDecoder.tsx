@@ -10,7 +10,6 @@ import {
   SliceStore,
   unmarshalDescriptor,
   unmarshalSlice,
-  unmarshalSliceIdentifiers,
 } from "./FileUtils";
 
 const DATA_RATE_BUFFER_MAX_SECONDS = 5;
@@ -34,7 +33,6 @@ const calculateBitsPerSecond = (buffer: DataRateSample[]): number => {
   );
   const start = sorted[0]?.receivedAt;
   const end = sorted[sorted.length - 1]?.receivedAt;
-  console.log(sorted);
   if (start && end) {
     return (
       (buffer.map((s) => s.bytes).reduce((a, b) => a + b) /
@@ -117,12 +115,8 @@ const sliceReducer = (
           }
           insertToStore(state.store, action.slice);
           if (newSlices.length > 0) {
-            console.log(
-              "new:",
-              newSlices.map((e) => unmarshalSliceIdentifiers(e.identifiers))
-            );
-            for (const slice of state.store) {
-              // try to re-decode every frame in the store
+            for (const slice of newSlices) {
+              // try to decode more frames with the newly decoded slices
               tryDecode(slice);
             }
           }

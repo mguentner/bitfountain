@@ -77,7 +77,7 @@ describe("decodeSlices", () => {
             const marshaled = await FileUtils.marshalSlice(mocked, 10, permutation);
             const unmarshaled = FileUtils.unmarshalSlice(marshaled);
             const result = FileUtils.decodeSlices(store, 10, unmarshaled);
-            console.log(`retrieved: ${result.map((s) => FileUtils.unmarshalSliceIdentifiers(s.identifiers) )}`)
+            console.log(`retrieved: ${result.map((s) => s.identifiers )}`)
             for (const resSlice of result) {
                 FileUtils.insertToStore(store, resSlice);
             }
