@@ -3,6 +3,7 @@ import "./App.css";
 import { Receiver } from "./Receiver";
 import { Transmitter } from "./Transmitter";
 import { useParams } from "./useParams";
+import readmeMarkdown from "./README.md";
 
 type AppMode = "transmitter" | "receiver" | "initial";
 
@@ -51,6 +52,11 @@ function App() {
           Receiver
         </button>
       </div>
+      {appMode === "initial" && (
+        <div className="readme">
+          <div dangerouslySetInnerHTML={{ __html: readmeMarkdown }}></div>
+        </div>
+      )}
       {appNode}
     </div>
   );

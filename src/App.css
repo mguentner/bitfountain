@@ -24,3 +24,13 @@ button {
 .mode-switcher .selected {
   background-color: green;
 }
+
+.readme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.readme div {
+  width: 80%;
+}
