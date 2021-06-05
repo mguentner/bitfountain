@@ -16,19 +16,13 @@ type FacingMode = "user" | "environment" | "left" | "right";
 
 const ReceiverIndication = ({
   rawDataRateInBitsPerSeconds,
-  netDataRateInBitsPerSeconds,
-  totalSlice,
+  determinedPercentage,
   lastSliceReceivedOn,
-  availableSlicesCount,
-  totalSlices,
   descriptor,
 }: {
   rawDataRateInBitsPerSeconds: number;
-  netDataRateInBitsPerSeconds: number;
-  totalSlice: number;
+  determinedPercentage: number;
   lastSliceReceivedOn?: number;
-  availableSlicesCount: number;
-  totalSlices: number;
   descriptor?: Descriptor;
 }) => {
   const receivedAgo = lastSliceReceivedOn
@@ -36,18 +30,12 @@ const ReceiverIndication = ({
     : undefined;
   return (
     <div className="receiver-indication">
-      <span>
-        {rawDataRateInBitsPerSeconds / 8} B/s (raw){" "}
-        {netDataRateInBitsPerSeconds / 8} B/s (net)
-      </span>
+      <span>{rawDataRateInBitsPerSeconds / 8} B/s (raw)</span>
       {descriptor && (
         <React.Fragment>
           <span>Name: {descriptor.name}</span>
           <span>Size: {descriptor.totalByteSize} Bytes</span>
-          <span>
-            Slices: {availableSlicesCount}/{descriptor.totalSlices}{" "}
-            {totalSlices}
-          </span>
+          <span>Progress: {(determinedPercentage * 100).toFixed(1)} %</span>
           <span>Hash: {descriptor.sha256.slice(0, 10)}...</span>
         </React.Fragment>
       )}
@@ -81,12 +69,11 @@ export const Receiver: FunctionComponent = () => {
   const {
     ready,
     descriptor,
-    availableSlices,
     callbackFunction,
     getPayload,
-    netDataRateInBitsPerSeconds,
+    determinedSlices,
     rawDataRateInBitsPerSeconds,
-    totalSlices,
+    determinedPercentage,
     lastSliceReceivedOn,
   } = useDecoder();
 
@@ -99,7 +86,7 @@ export const Receiver: FunctionComponent = () => {
     return (
       <div className="progressbar">
         {totalSlicesArray.map((slice) => {
-          if (availableSlices.includes(slice)) {
+          if (determinedSlices.includes(slice)) {
             return <div key={slice} className="slice available"></div>;
           } else {
             return <div key={slice} className="slice missing"></div>;
@@ -159,11 +146,8 @@ export const Receiver: FunctionComponent = () => {
                 <ReceiverIndication
                   descriptor={descriptor}
                   rawDataRateInBitsPerSeconds={rawDataRateInBitsPerSeconds}
-                  netDataRateInBitsPerSeconds={netDataRateInBitsPerSeconds}
-                  totalSlice={totalSlices}
+                  determinedPercentage={determinedPercentage}
                   lastSliceReceivedOn={lastSliceReceivedOn}
-                  availableSlicesCount={availableSlices.length}
-                  totalSlices={totalSlices}
                 />
                 <video ref={videoRef} autoPlay></video>
               </div>

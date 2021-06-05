@@ -63,12 +63,25 @@ describe("getNextPermuation", ()  => {
     })
 })
 
-describe("decodeSlices", () => {
+describe("getSlice", () => {
+    it("should return the correct size", () => {
+        const mocked = MockFile({ size: 12 })
+        const slice1 = FileUtils.getSlice(mocked, 5, 0)
+        const slice2 = FileUtils.getSlice(mocked, 5, 1)
+        const slice3 = FileUtils.getSlice(mocked, 5, 2)
+        expect(slice1.size).to.eql(5)
+        expect(slice2.size).to.eql(5)
+        expect(slice3.size).to.eql(2)
+    })
+})
+
+describe("gaussian", () => {
     it("should successfully decode", async () => {
-        const mocked = MockFile({ size: 1007 })
-        const store: FileUtils.SliceStore = []
+        const size = 2003
+        const mocked = MockFile({ size: size })
         const hash = await FileUtils.hashFileSHA256B64(mocked);
         const descriptor = FileUtils.getDescriptor(mocked, hash, 10);
+        const store: FileUtils.SliceStore = FileUtils.newStore(descriptor.totalSlices)
         let run = 0;
         for (;;) {
             console.log(`start run ${run}`)
@@ -76,31 +89,26 @@ describe("decodeSlices", () => {
             console.log(`permutation: ${permutation}`)
             const marshaled = await FileUtils.marshalSlice(mocked, 10, permutation);
             const unmarshaled = FileUtils.unmarshalSlice(marshaled);
-            const result = FileUtils.decodeSlices(store, 10, unmarshaled);
-            console.log(`retrieved: ${result.map((s) => s.identifiers )}`)
-            for (const resSlice of result) {
-                FileUtils.insertToStore(store, resSlice);
-            }
-            FileUtils.insertToStore(store, unmarshaled);
-            const individualSlices = FileUtils.individualSlicesInStore(store);
-            console.log(`individual slices: ${individualSlices}`)
-            if (individualSlices.length === FileUtils.getMaxSliceCount(mocked, 10)) {
+            FileUtils.addEquation(store, unmarshaled)
+            if (FileUtils.isDetermined(store)) {
                 break
             }
             run++;
         }
+        FileUtils.reduce(store)
         const payload = FileUtils.assemblePayload(store, descriptor)
         if (payload === null) {
             expect.fail("Expected a blob")
             return
         }
-        expect(payload.size).eql(mocked.size).eql(1007)
+        expect(payload.size).eql(mocked.size).eql(size)
         const receivedHash = await FileUtils.hashFileSHA256B64(payload);
         //const mockedData = await mocked.arrayBuffer();
         //writeFileSync("./input.blob", new Uint8Array(mockedData));
         //const payloadData = await payload.arrayBuffer();
         //writeFileSync("./received.blob", new Uint8Array(payloadData));
         expect(hash).eq(receivedHash)
+
     })
 })
 

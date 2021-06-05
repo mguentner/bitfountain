@@ -1,16 +1,18 @@
 import { useEffect, useReducer } from "react";
 import {
+  addEquation,
   assemblePayload,
-  decodeSlices,
   Descriptor,
+  isDetermined,
   individualSlicesInStore,
-  insertToStore,
   isEqual,
-  payloadIsReady,
+  newStore,
   Slice,
   SliceStore,
   unmarshalDescriptor,
   unmarshalSlice,
+  determinedPercentage,
+  determinedSliceIndices,
 } from "./FileUtils";
 
 const DATA_RATE_BUFFER_MAX_SECONDS = 5;
@@ -83,7 +85,7 @@ const sliceReducer = (
       ) {
         return {
           descriptor: action.descriptor,
-          store: [],
+          store: newStore(action.descriptor.totalSlices),
           dataRateBuffer: [],
           rawDataRateBuffer: [],
           lastSliceReceivedOn: 0,
@@ -109,38 +111,11 @@ const sliceReducer = (
       if (state.descriptor === undefined) {
         return state;
       } else {
-        const tryDecode = (newSlice: Slice) => {
-          const newSlices = decodeSlices(
-            state.store,
-            state.descriptor?.slizeSize || 0,
-            newSlice
-          );
-          for (let slice of newSlices) {
-            if (insertToStore(state.store, slice) === true) {
-              state.dataRateBuffer.push({
-                receivedAt: Date.now(),
-                bytes: action.slice.payload.length,
-              });
-            }
-          }
-          if (insertToStore(state.store, action.slice) === true) {
-            state.dataRateBuffer.push({
-              receivedAt: Date.now(),
-              bytes: action.slice.payload.length,
-            });
-          }
-          if (newSlices.length > 0) {
-            for (const slice of newSlices) {
-              // try to decode more frames with the newly decoded slices
-              tryDecode(slice);
-            }
-          }
-        };
         if (
           state.descriptor &&
           !isEqual(action.slice.identifiers, state.lastIdentifiersAdded)
         ) {
-          tryDecode(action.slice);
+          addEquation(state.store, action.slice);
         }
         state.rawDataRateBuffer.push({
           receivedAt: Date.now(),
@@ -172,8 +147,9 @@ export interface DecoderResult {
   ready: boolean;
   descriptor?: Descriptor;
   availableSlices: number[];
+  determinedPercentage: number;
+  determinedSlices: number[];
   callbackFunction: (data: string) => void;
-  netDataRateInBitsPerSeconds: number;
   rawDataRateInBitsPerSeconds: number;
   getPayload: () => Blob | null;
   totalSlices: number;
@@ -205,9 +181,7 @@ export const useDecoder = (): DecoderResult => {
   };
 
   const allIndividualSlices = individualSlicesInStore(state.store);
-  const ready = state.descriptor
-    ? payloadIsReady(state.store, state.descriptor)
-    : false;
+  const ready = state.descriptor ? isDetermined(state.store) : false;
 
   const getPayload = (): Blob | null => {
     return state.descriptor
@@ -216,7 +190,6 @@ export const useDecoder = (): DecoderResult => {
   };
 
   const rawDataRate = calculateBitsPerSecond(state.rawDataRateBuffer);
-  const netDataRate = calculateBitsPerSecond(state.dataRateBuffer);
 
   useEffect(() => {
     const handle = setInterval(() => {
@@ -232,9 +205,10 @@ export const useDecoder = (): DecoderResult => {
     descriptor: state.descriptor,
     availableSlices: allIndividualSlices,
     totalSlices: state.store.length,
+    determinedPercentage: determinedPercentage(state.store),
+    determinedSlices: determinedSliceIndices(state.store),
     callbackFunction: callbackFunction,
     rawDataRateInBitsPerSeconds: rawDataRate,
-    netDataRateInBitsPerSeconds: netDataRate,
     lastSliceReceivedOn:
       state.lastSliceReceivedOn === 0 ? undefined : state.lastSliceReceivedOn,
     getPayload,

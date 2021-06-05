@@ -5,9 +5,6 @@ import { useUserMedia } from 'use-user-media'
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import QrCodeWorker from "worker-loader!./workers/qrcode.worker";
 
-let lastI = 0;
-let count = 0;
-
 const createQrWorker = ()  => {
   const worker = new QrCodeWorker();
   const proxy = wrap<typeof parseQrcode>(worker);
@@ -18,12 +15,12 @@ const createQrWorker = ()  => {
   };
 
   return { proxy, cleanup };
-}
+}    
+
+type QRWorkerType = ReturnType<typeof createQrWorker>
 
 const useWorkerPool = (size: number) => {
-  const [pool, setPool] = useState<{ id: number, worker: {
-    proxy: Remote<(data: ImageData) => string | null>,
-    cleanup: () => void} ; available: boolean }[]>([]);
+  const [pool, setPool] = useState<{ id: number, worker: QRWorkerType ; available: boolean }[]>([]);
 
   useEffect(() => {
     const l = [];
@@ -133,10 +130,6 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
           let imageData: ImageData | null = context.getImageData(0, 0, width, height)
 
           if (imageData && imageData.data) {
-            if (count++ % 100 === 0) {
-              console.log((new Date).toString(), Date.now()-lastI)
-            }
-            lastI=Date.now()
             const { proxy, id } = requestProxy();
             if (proxy && id) {
               const started = Date.now();
@@ -145,9 +138,14 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
                 context = null
                 returnProxy(id);
                 if (res) {
-                  console.log(`Decode took ${Date.now()-started} ms using worker ${id}`)
+                  const duration = Date.now()-started;
+                  if (duration > 200) {
+                    console.warn(`Decode took  ms using worker ${id}`)
+                  }
                   onResult(res)
                 }
+              }, () => {
+                returnProxy(id);
               })
             } else {
               console.log("no worker available")

@@ -19,18 +19,33 @@ export const isEqual = (a: number[], b: number[]): boolean => {
     return a.every((val, index) => val === b[index]);
 }
 
+
 export type SliceStore = Slice[]
+
+export const printStoreAsMatrix = (store: SliceStore) => {
+    const s = store.length
+    console.log("---matrix---")
+    for (let i=s-1; i>=0; i--) {
+        let line = [];
+        for (let j=0; j<s; j++) {
+            if (store[i].identifiers.indexOf(j) === -1) {
+                line.push("0")
+            } else {
+                line.push("1")
+            }
+        }
+        console.log(line.join("|"))
+    }
+}
+
+export const newStore = (size: number): SliceStore => {
+    return [...Array(size)].map((e) => {
+        return { identifiers: [], payload: new Uint8Array(0) }
+    })
+}
 
 export const isInStore = (store: SliceStore, slice: Slice) => {
     return store.filter((s) => isEqual(s.identifiers, slice.identifiers)).length !== 0;
-}
-
-export const insertToStore = (store:SliceStore, slice: Slice): boolean => {
-    if (!isInStore(store, slice)) {
-        store.push(slice)
-        return true;
-    }
-    return false
 }
 
 export const individualSlicesInStore = (store: SliceStore) => {
@@ -185,45 +200,102 @@ export const unmarshalSlice = (data: string): Slice => {
     }
 }
 
-export const decodeSlices = (store: SliceStore, sliceSize: number, sliceToBeDecoded: Slice): Slice[] => {
-    const result: SliceStore = [];
-    store.forEach((sliceInStore) => {
-        const storeIdentifiers = sliceInStore.identifiers;
-        const toBeDecodedIdentifiers = sliceToBeDecoded.identifiers;
-        const uniqueIdentifiers = [...storeIdentifiers, ...toBeDecodedIdentifiers].filter((e) => {
-            return (storeIdentifiers.indexOf(e) === -1 && toBeDecodedIdentifiers.indexOf(e) !== -1) || (
-                storeIdentifiers.indexOf(e) !== -1 && toBeDecodedIdentifiers.indexOf(e) === -1
-            )
-        })
-        if (uniqueIdentifiers.length === 1 && store.filter((s) => isEqual(s.identifiers, uniqueIdentifiers)).length === 0) {
-            // e.g. [2,3] and [2] => unique is 3
-            // e.g. [2,3,4] and [2,3] => unique is 4 
-            const decodedPayload =  new Uint8Array(sliceSize)
-            decodedPayload.fill(0)
-            const toBeDecodedPayload = sliceToBeDecoded.payload;
-            const inStorePayload = sliceInStore.payload;
-            for (let i=0; i < sliceSize; i++) {
-                if (i < toBeDecodedPayload.length && i < inStorePayload.length) {
-                    decodedPayload[i] = toBeDecodedPayload[i] ^ inStorePayload[i]
-                } else if (i < toBeDecodedPayload.length) {
-                    decodedPayload[i] = toBeDecodedPayload[i]
-                } else if (i < inStorePayload.length) {
-                    decodedPayload[i] = inStorePayload[i]
-                }
-            }
-            const newSlice: Slice = {
-                identifiers: uniqueIdentifiers,
-                payload: decodedPayload
-            }
-            result.push(newSlice);
+/*
+    The following code is a port of https://github.com/google/gofountain/blob/4928733085e9593b7dcdb0fe268b20e1e1184b6d/block.go
+    to TypeScript.
+ */
+export const xor = (a: Uint8Array, b: Uint8Array): Uint8Array => {
+    const decodedPayload = new Uint8Array(Math.max(a.length, b.length))
+    decodedPayload.fill(0)
+    for (let i=0; i < decodedPayload.length; i++) {
+        if (i < a.length && i < b.length) {
+            decodedPayload[i] = a[i] ^ b[i]
+        } else if (i < a.length) {
+            decodedPayload[i] = a[i]
+        } else if (i < b.length) {
+            decodedPayload[i] = b[i]
         }
-    })
-    return result;
+    }
+    return decodedPayload
 }
 
-export const payloadIsReady = (store: SliceStore, descriptor: Descriptor): boolean => {
-    const individualSlices = individualSlicesInStore(store)
-    return individualSlices.length === descriptor.totalSlices;
+export const uniqueIdentifiers = (a: number[], b: number[]): number[] => {
+    return [...a, ...b].filter((e) => {
+            return (a.indexOf(e) === -1 && b.indexOf(e) !== -1) || (
+                a.indexOf(e) !== -1 && b.indexOf(e) === -1
+            )
+    }).sort()
+}
+
+export const xorSlice = (a: Slice, b: Slice): Slice => {
+    return {
+        identifiers: uniqueIdentifiers(a.identifiers, b.identifiers),
+        payload: xor(a.payload, b.payload)
+    }
+}
+
+export const addEquation = (store: SliceStore, slice: Slice) => {
+    let components = slice.identifiers
+    let payload = slice.payload
+    while (components.length > 0 && store[components[0]].identifiers.length > 0) {
+        const s = components[0]
+        if (components.length >= store[s].identifiers.length) {
+            components = uniqueIdentifiers(store[s].identifiers, components)
+            payload = xor(store[s].payload, payload)
+        } else {
+            const tmpComp = store[s].identifiers
+            const tmpPayload = store[s].payload
+            store[s] = {
+                identifiers: components,
+                payload: payload,
+            }
+            components = tmpComp
+            payload = tmpPayload
+        }
+    }
+
+    if (components.length > 0) {
+        store[components[0]] = {
+            identifiers: components,
+            payload: payload
+        }
+    }
+}
+
+export const isDetermined = (store: SliceStore): boolean =>  {
+    for (const slice of store) {
+        if (slice.identifiers.length === 0) {
+            return false
+        }
+    }
+    return true
+}
+
+export const determinedSliceIndices = (store: SliceStore): number[] => {
+    return store.map((slice, index) => { return {s: slice, i: index} as {s: Slice, i: number} }).filter((v) => v.s.identifiers.length !== 0).map((v) => v.i)
+}
+
+export const determinedPercentage = (store: SliceStore): number => {
+    return store.filter((e) => e.identifiers.length !== 0).length / store.length
+}
+
+export const reduce = (store: SliceStore) => {
+    for (let i = store.length - 1; i >= 0; i--) {
+        for (let j = 0; j < i; j++) {
+            const ci = store[i].identifiers
+            const cj = store[j].identifiers
+            for (let k = 1; k < cj.length; k++) {
+                if (cj[k] === ci[0]) {
+                    store[j] = xorSlice(store[j], store[i])
+                    continue
+                }
+            }
+        }
+        while (store[i].identifiers.length > 1) {
+            const nextId = store[i].identifiers.filter((e) => e !== i)[0]
+            store[i] = xorSlice(store[i], store[nextId])   
+        }
+    }
 }
 
 const mergeUint8Array = (a: Uint8Array, b: Uint8Array): Uint8Array => {
@@ -234,7 +306,7 @@ const mergeUint8Array = (a: Uint8Array, b: Uint8Array): Uint8Array => {
 };
 
 export const assemblePayload = (store: SliceStore, descriptor: Descriptor): Blob | null => {
-    if (payloadIsReady(store, descriptor)) {
+    if (isDetermined(store)) {
         let all = new Uint8Array(0);
         store.filter((s) => s.identifiers.length === 1).sort((a,b) => {
             return (a.identifiers[0]) - (b.identifiers[0])
