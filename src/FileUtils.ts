@@ -12,7 +12,7 @@ export interface Descriptor {
     padding: string
 }
 
-const isEqual = (a: number[], b: number[]): boolean => {
+export const isEqual = (a: number[], b: number[]): boolean => {
     if (a.length !== b.length) {
         return false;
     }
@@ -25,10 +25,12 @@ export const isInStore = (store: SliceStore, slice: Slice) => {
     return store.filter((s) => isEqual(s.identifiers, slice.identifiers)).length !== 0;
 }
 
-export const insertToStore = (store:SliceStore, slice: Slice) => {
+export const insertToStore = (store:SliceStore, slice: Slice): boolean => {
     if (!isInStore(store, slice)) {
         store.push(slice)
+        return true;
     }
+    return false
 }
 
 export const individualSlicesInStore = (store: SliceStore) => {

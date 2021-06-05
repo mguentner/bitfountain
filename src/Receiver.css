@@ -38,13 +38,10 @@
   background-color: red;
 }
 
-.descriptor {
+.receiver-indication {
   display: flex;
   align-items: flex-start;
   flex-direction: column;
-}
-
-.receiver-indication {
   position: absolute;
   color: cyan;
   background-color: gray;
@@ -53,4 +50,15 @@
   background-color: rgba(90, 90, 200, 0.5);
   margin-left: 10%;
   margin-top: 10%;
+}
+
+.info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-box > * {
+  width: 80%;
 }

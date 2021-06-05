@@ -10,25 +10,47 @@ import "./App.css";
 import "./Receiver.css";
 import { useDecoder } from "./useDecoder";
 import useQrCode from "./useQrCode";
+import { Descriptor } from "./FileUtils";
 
 type FacingMode = "user" | "environment" | "left" | "right";
 
 const ReceiverIndication = ({
-  dataRateInBitsPerSeconds,
+  rawDataRateInBitsPerSeconds,
+  netDataRateInBitsPerSeconds,
   totalSlice,
   lastSliceReceivedOn,
+  availableSlicesCount,
+  totalSlices,
+  descriptor,
 }: {
-  dataRateInBitsPerSeconds: number;
+  rawDataRateInBitsPerSeconds: number;
+  netDataRateInBitsPerSeconds: number;
   totalSlice: number;
   lastSliceReceivedOn?: number;
+  availableSlicesCount: number;
+  totalSlices: number;
+  descriptor?: Descriptor;
 }) => {
   const receivedAgo = lastSliceReceivedOn
     ? (Date.now() - lastSliceReceivedOn) / 1000
     : undefined;
   return (
     <div className="receiver-indication">
-      <span>{dataRateInBitsPerSeconds} bit/s</span>
-      <br />
+      <span>
+        {rawDataRateInBitsPerSeconds / 8} B/s (raw){" "}
+        {netDataRateInBitsPerSeconds / 8} B/s (net)
+      </span>
+      {descriptor && (
+        <React.Fragment>
+          <span>Name: {descriptor.name}</span>
+          <span>Size: {descriptor.totalByteSize} Bytes</span>
+          <span>
+            Slices: {availableSlicesCount}/{descriptor.totalSlices}{" "}
+            {totalSlices}
+          </span>
+          <span>Hash: {descriptor.sha256.slice(0, 10)}...</span>
+        </React.Fragment>
+      )}
       <span>
         {receivedAgo && receivedAgo < 600
           ? `last frame received ${receivedAgo}s ago`
@@ -62,7 +84,8 @@ export const Receiver: FunctionComponent = () => {
     availableSlices,
     callbackFunction,
     getPayload,
-    dataRateInBitsPerSeconds,
+    netDataRateInBitsPerSeconds,
+    rawDataRateInBitsPerSeconds,
     totalSlices,
     lastSliceReceivedOn,
   } = useDecoder();
@@ -134,49 +157,44 @@ export const Receiver: FunctionComponent = () => {
             <div className="qr-reader">
               <div className="qr-box">
                 <ReceiverIndication
-                  dataRateInBitsPerSeconds={dataRateInBitsPerSeconds}
+                  descriptor={descriptor}
+                  rawDataRateInBitsPerSeconds={rawDataRateInBitsPerSeconds}
+                  netDataRateInBitsPerSeconds={netDataRateInBitsPerSeconds}
                   totalSlice={totalSlices}
                   lastSliceReceivedOn={lastSliceReceivedOn}
+                  availableSlicesCount={availableSlices.length}
+                  totalSlices={totalSlices}
                 />
                 <video ref={videoRef} autoPlay></video>
               </div>
             </div>
           )}
-          {descriptor ? (
+          <div className="info-box">
+            {descriptor ? <div>{progressBar}</div> : null}
+            {ready ? (
+              <button onClick={() => downloadPayload()}>Download</button>
+            ) : null}
             <div>
-              {progressBar}
-              <div className="descriptor">
-                <span>Name: {descriptor.name}</span>
-                <span>Size: {descriptor.totalByteSize} Bytes</span>
-                <span>
-                  Slices: {availableSlices.length}/{descriptor.totalSlices}{" "}
-                  {totalSlices}
-                </span>
-                <span>Hash: {descriptor.sha256.slice(0, 10)}...</span>
-              </div>
+              <h1>Devices</h1>
+              <select
+                value={selectedMediaDeviceId}
+                onChange={(d) => {
+                  setSelectedMediaDeviceId(d.target.value);
+                }}
+              >
+                {videoMediaDevices.map((mediaDevice) => {
+                  return (
+                    <option
+                      key={mediaDevice.deviceId + mediaDevice.label}
+                      value={mediaDevice.deviceId}
+                    >
+                      {mediaDevice.label}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
-          ) : null}
-          {ready ? (
-            <button onClick={() => downloadPayload()}>Download</button>
-          ) : null}
-          <h1>Devices</h1>
-          <select
-            value={selectedMediaDeviceId}
-            onChange={(d) => {
-              setSelectedMediaDeviceId(d.target.value);
-            }}
-          >
-            {videoMediaDevices.map((mediaDevice) => {
-              return (
-                <option
-                  key={mediaDevice.deviceId + mediaDevice.label}
-                  value={mediaDevice.deviceId}
-                >
-                  {mediaDevice.label}
-                </option>
-              );
-            })}
-          </select>
+          </div>
         </div>
       )}
     </div>
