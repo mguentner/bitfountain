@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import {
   addEquation,
   assemblePayload,
@@ -54,6 +54,7 @@ interface sliceReducerState {
   dataRateBuffer: DataRateSample[];
   lastIdentifiersAdded: number[];
   lastSliceReceivedOn: number;
+  addDataCount: number;
 }
 
 interface sliceReducerActionDescriptor {
@@ -90,6 +91,7 @@ const sliceReducer = (
           rawDataRateBuffer: [],
           lastSliceReceivedOn: 0,
           lastIdentifiersAdded: [],
+          addDataCount: 0,
         };
       } else {
         return state;
@@ -135,6 +137,7 @@ const sliceReducer = (
           ),
           lastSliceReceivedOn: Date.now(),
           lastIdentifiersAdded: action.slice.identifiers,
+          addDataCount: state.addDataCount + 1,
         };
       }
     }
@@ -164,6 +167,7 @@ export const useDecoder = (): DecoderResult => {
     dataRateBuffer: [],
     lastSliceReceivedOn: 0,
     lastIdentifiersAdded: [],
+    addDataCount: 0,
   });
 
   const callbackFunction = (data: string) => {
@@ -180,8 +184,12 @@ export const useDecoder = (): DecoderResult => {
     } catch (err) {}
   };
 
-  const allIndividualSlices = individualSlicesInStore(state.store);
-  const ready = state.descriptor ? isDetermined(state.store) : false;
+  const allIndividualSlices = useMemo(() => {
+    return individualSlicesInStore(state.store);
+  }, [state.addDataCount]);
+  const ready = useMemo(() => {
+    return state.descriptor ? isDetermined(state.store) : false;
+  }, [state.addDataCount]);
 
   const getPayload = (): Blob | null => {
     return state.descriptor
@@ -205,8 +213,12 @@ export const useDecoder = (): DecoderResult => {
     descriptor: state.descriptor,
     availableSlices: allIndividualSlices,
     totalSlices: state.store.length,
-    determinedPercentage: determinedPercentage(state.store),
-    determinedSlices: determinedSliceIndices(state.store),
+    determinedPercentage: useMemo(() => {
+      return determinedPercentage(state.store);
+    }, [state.addDataCount]),
+    determinedSlices: useMemo(() => {
+      return determinedSliceIndices(state.store);
+    }, [state.addDataCount]),
     callbackFunction: callbackFunction,
     rawDataRateInBitsPerSeconds: rawDataRate,
     lastSliceReceivedOn:

@@ -16,12 +16,13 @@ import { EncodeHintType } from "@zxing/library";
 import "./Transmitter.css";
 import ErrorCorrectionLevel from "@zxing/library/esm/core/qrcode/decoder/ErrorCorrectionLevel";
 
+const codeWriter = new BrowserQRCodeSvgWriter();
+
 const writeSVGToRef = (data: string, ref: React.RefObject<HTMLDivElement>) => {
   const encodingHints = new Map([
     [EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M],
   ]);
   if (ref && ref.current && data) {
-    const codeWriter = new BrowserQRCodeSvgWriter();
     const qr = codeWriter.write(data, 1024, 1024, encodingHints);
     qr.setAttribute("viewBox", "0 70 1024 1024");
     qr.removeAttribute("height");
@@ -66,7 +67,7 @@ export const Transmitter: FunctionComponent = () => {
   const [sha256, setSha256] = useState<string>("");
   const [currentlyHashing, setCurrentlyHashing] = useState(false);
   const [data, setData] = useState<string | undefined>(undefined);
-  const fps = 10;
+  const fps = 15;
   const sliceSize = 200;
   const [count, setCount] = useState(0);
   const [sliceCount, setSliceCount] = useState(0);

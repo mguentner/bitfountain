@@ -140,7 +140,7 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
                 if (res) {
                   const duration = Date.now()-started;
                   if (duration > 200) {
-                    console.warn(`Decode took  ms using worker ${id}`)
+                    console.warn(`Decode took ${duration} ms using worker ${id}`)
                   }
                   onResult(res)
                 }
