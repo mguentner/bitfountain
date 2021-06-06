@@ -37,3 +37,5 @@ Since the `Transmitter` does not know what parts of the file the `Receiver` alre
 Find the source code at https://github.com/mguentner/bitfountain
 
 License: MIT
+
+Maximilian Güntner, 2021
