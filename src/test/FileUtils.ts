@@ -78,16 +78,17 @@ describe("getSlice", () => {
 describe("gaussian", () => {
     it("should successfully decode", async () => {
         const size = 2003
+        const sliceSize = 100
         const mocked = MockFile({ size: size })
         const hash = await FileUtils.hashFileSHA256B64(mocked);
-        const descriptor = FileUtils.getDescriptor(mocked, hash, 10);
+        const descriptor = FileUtils.getDescriptor(mocked, hash, sliceSize);
         const store: FileUtils.SliceStore = FileUtils.newStore(descriptor.totalSlices)
         let run = 0;
         for (;;) {
             console.log(`start run ${run}`)
-            const permutation = FileUtils.getNextPermutation(mocked, 10);
+            const permutation = FileUtils.getNextPermutation(mocked, sliceSize);
             console.log(`permutation: ${permutation}`)
-            const marshaled = await FileUtils.marshalSlice(mocked, 10, permutation);
+            const marshaled = await FileUtils.marshalSlice(mocked, sliceSize, permutation);
             const unmarshaled = FileUtils.unmarshalSlice(marshaled);
             FileUtils.addEquation(store, unmarshaled)
             if (FileUtils.isDetermined(store)) {
@@ -95,7 +96,6 @@ describe("gaussian", () => {
             }
             run++;
         }
-        FileUtils.reduce(store)
         const payload = FileUtils.assemblePayload(store, descriptor)
         if (payload === null) {
             expect.fail("Expected a blob")

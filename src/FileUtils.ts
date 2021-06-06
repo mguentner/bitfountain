@@ -307,6 +307,7 @@ const mergeUint8Array = (a: Uint8Array, b: Uint8Array): Uint8Array => {
 
 export const assemblePayload = (store: SliceStore, descriptor: Descriptor): Blob | null => {
     if (isDetermined(store)) {
+        reduce(store);
         let all = new Uint8Array(0);
         store.filter((s) => s.identifiers.length === 1).sort((a,b) => {
             return (a.identifiers[0]) - (b.identifiers[0])
