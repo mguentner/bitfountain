@@ -26,11 +26,13 @@ Since the `Transmitter` does not know what parts of the file the `Receiver` alre
 
 - Ivan Daniluk wrote some [awesome](https://divan.dev/posts/fountaincodes/) [blog posts](https://divan.dev/posts/animatedqr/) about his
   research about Luby Codes and his project [txqr](https://github.com/divan/txqr) that uses `gomobile`.
+- https://github.com/google/gofountain is a great go package than links to useful papers in the comments. Worth a read!
 
 ## Non-Upstream Software used
 
 - react-use-qrcode: This project uses a modified version of https://github.com/pocesar/react-use-qrcode, (`src/useQrCode.ts` & `src/workers/qrcode.worker`).
 - `File` / `Blob` mocks: `src/test/file/*` is a modified version copied from https://github.com/capricorn86/happy-dom
+- `src/FileUtils.ts` contains a port of https://github.com/google/gofountain/blob/master/block.go
 
 ## Source Code and License
 
