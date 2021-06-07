@@ -124,6 +124,7 @@ export const Transmitter: FunctionComponent = () => {
         )
       ) : (
         <div className="file-selector">
+          <p>Select only files smaller than 20 KiB.</p>
           <FileSelector
             onFileSelect={async (file: File) => {
               setCurrentlyHashing(true);
