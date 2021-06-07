@@ -2,6 +2,8 @@
 
 experimental data transceiver using QR codes
 
+Demo at https://bitfountain.mguentner.de
+
 ## Instructions
 
 Open the application on one device and select `Transmitter`. Then select a file that you want
