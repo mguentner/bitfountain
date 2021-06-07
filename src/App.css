@@ -1,5 +1,10 @@
 body {
   overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100%;
 }
 
 .app {
@@ -29,8 +34,12 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 90%;
 }
 
 .readme div {
-  width: 80%;
+  position: relative;
+  overflow-y: scroll;
+  height: 100%;
+  width: 90%;
 }
