@@ -93,6 +93,7 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
     let objectUrl: string | null = null
 
     if (video && captureStream) {
+      video.playsInline = true
       if ('srcObject' in video) {
         video.srcObject = captureStream
       } else if ('src' in video) {
