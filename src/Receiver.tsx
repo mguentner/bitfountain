@@ -132,14 +132,14 @@ export const Receiver: FunctionComponent = () => {
   }, [ready, downloadDone, setDownloadDone, stop, downloadPayload]);
 
   return (
-    <div className="app">
+    <div className="receiver">
       {ready ? (
         <div>
           <h1>Transmission Done</h1>
           <button onClick={() => downloadPayload()}>Save again.</button>
         </div>
       ) : (
-        <div>
+        <React.Fragment>
           {selectedMediaDeviceId && (
             <div className="qr-reader">
               <div className="qr-box">
@@ -179,7 +179,7 @@ export const Receiver: FunctionComponent = () => {
               </select>
             </div>
           </div>
-        </div>
+        </React.Fragment>
       )}
     </div>
   );
