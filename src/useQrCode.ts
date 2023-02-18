@@ -1,11 +1,11 @@
 import React, { useMemo, useEffect, useCallback, useState } from 'react'
-import { wrap, Remote, transfer, releaseProxy } from 'comlink'
+import { wrap, transfer, releaseProxy } from 'comlink'
 import { parseQrcode } from './workers/qrcode.worker'
 import { useUserMedia } from 'use-user-media'
 // eslint-disable-next-line import/no-webpack-loader-syntax
 import QrCodeWorker from "worker-loader!./workers/qrcode.worker";
 
-const createQrWorker = ()  => {
+const createQrWorker = () => {
   const worker = new QrCodeWorker();
   const proxy = wrap<typeof parseQrcode>(worker);
 
@@ -15,23 +15,23 @@ const createQrWorker = ()  => {
   };
 
   return { proxy, cleanup };
-}    
+}
 
 type QRWorkerType = ReturnType<typeof createQrWorker>
 
 const useWorkerPool = (size: number) => {
-  const [pool, setPool] = useState<{ id: number, worker: QRWorkerType ; available: boolean }[]>([]);
+  const [pool, setPool] = useState<{ id: number, worker: QRWorkerType; available: boolean }[]>([]);
 
   useEffect(() => {
     const l = [];
-    for (let i=0; i< size; i++) {
+    for (let i = 0; i < size; i++) {
       const worker = createQrWorker()
       l.push({ id: i, worker: worker, available: true })
     }
     setPool(l)
     return () => {
       for (const e of pool) {
-          e.worker.cleanup()
+        e.worker.cleanup()
       }
       setPool([])
     }
@@ -62,10 +62,12 @@ const useWorkerPool = (size: number) => {
 }
 
 function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTMLVideoElement>, onResult: (data: string) => void) {
-  const constraints = { audio: false, video: {
-    ...options,
-  }}
-  const [ error, stream ] = useUserMedia(constraints)
+  const constraints = {
+    audio: false, video: {
+      ...options,
+    }
+  }
+  const [error, stream] = useUserMedia(constraints)
 
   const dimensions = (() => {
     if (stream) {
@@ -139,7 +141,7 @@ function useQrCode(options: MediaTrackConstraints, videoRef: React.RefObject<HTM
                 context = null
                 returnProxy(id);
                 if (res) {
-                  const duration = Date.now()-started;
+                  const duration = Date.now() - started;
                   if (duration > 200) {
                     console.warn(`Decode took ${duration} ms using worker ${id}`)
                   }
