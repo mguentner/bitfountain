@@ -25,9 +25,9 @@ export type SliceStore = Slice[]
 export const printStoreAsMatrix = (store: SliceStore) => {
     const s = store.length
     console.log("---matrix---")
-    for (let i=s-1; i>=0; i--) {
+    for (let i = s - 1; i >= 0; i--) {
         let line = [];
-        for (let j=0; j<s; j++) {
+        for (let j = 0; j < s; j++) {
             if (store[i].identifiers.indexOf(j) === -1) {
                 line.push("0")
             } else {
@@ -61,13 +61,13 @@ const seperator = "|"
 const solitonDistributionMax = 10
 const solitonDistribution = (i: number, K: number): number => {
     if (i === 1) {
-        return 1/K;
+        return 1 / K;
     } else {
-        return 1/(i*(i-1))
+        return 1 / (i * (i - 1))
     }
 }
 
-export const solitonDistributionK = Array.from(Array(solitonDistributionMax).keys()).map((i) => [i+1, solitonDistribution(i+1, solitonDistributionMax)]).sort((a,b) => b[1] - a[1])
+export const solitonDistributionK = Array.from(Array(solitonDistributionMax).keys()).map((i) => [i + 1, solitonDistribution(i + 1, solitonDistributionMax)]).sort((a, b) => b[1] - a[1])
 export const solitonDistributionKAggregated = (() => {
     let sum = 0;
     return solitonDistributionK.map((e) => [e[0], sum += e[1]]).reverse();
@@ -76,8 +76,8 @@ export const solitonDistributionKAggregated = (() => {
 export const sampleSolitonDistributionK = (): number => {
     const randValue = Math.random()
     let index = 0
-    for (; index < solitonDistributionKAggregated.length && solitonDistributionKAggregated[index][1] >= randValue; index++) {}
-    return solitonDistributionKAggregated[index-1][0];
+    for (; index < solitonDistributionKAggregated.length && solitonDistributionKAggregated[index][1] >= randValue; index++) { }
+    return solitonDistributionKAggregated[index - 1][0];
 }
 
 export const hashFileSHA256B64 = async (blob: Blob): Promise<string> => {
@@ -99,7 +99,7 @@ export const getSlice = (file: File, sliceSize: number, slice: number): Blob => 
     if (slice > getMaxSliceCount(file, sliceSize)) {
         throw Error("Too big")
     }
-    return file.slice(sliceSize*slice, sliceSize*(slice+1))
+    return file.slice(sliceSize * slice, sliceSize * (slice + 1))
 }
 
 export const getMaxSliceCount = (file: File, sliceSize: number): number => {
@@ -110,8 +110,8 @@ export const getNextPermutation = (file: File, sliceSize: number): number[] => {
     const result = []
     const maxSliceCount = getMaxSliceCount(file, sliceSize);
     const allKeys = Array.from(Array(maxSliceCount).keys())
-    const randomSorted = allKeys.sort((a,b) => Math.random() - 0.5)
-    for (let i = 0; i < sampleSolitonDistributionK(); i++) {
+    const randomSorted = allKeys.sort((a, b) => Math.random() - 0.5)
+    for (let i = 0; i < Math.min(sampleSolitonDistributionK(), maxSliceCount); i++) {
         result.push(randomSorted[i]);
     }
     return result;
@@ -130,16 +130,16 @@ export const getDescriptor = (file: File, sha256: string, sliceSize: number): De
 }
 
 export const marshaledNominalSlizeSize = (nominalSlizeSize: number) => {
-    return Math.ceil("P:".length + nominalSlizeSize*4/3)
+    return Math.ceil("P:".length + nominalSlizeSize * 4 / 3)
 }
 
 export const marshalDescriptor = (descriptor: Descriptor, nominalSliceSize: number) => {
     const encoder = new TextEncoder()
-    const prePadded =  "D:" + b64encode(encoder.encode(JSON.stringify(descriptor)), undefined, undefined)
+    const prePadded = "D:" + b64encode(encoder.encode(JSON.stringify(descriptor)), undefined, undefined)
     if (prePadded.length < marshaledNominalSlizeSize(nominalSliceSize)) {
-       const delta = marshaledNominalSlizeSize(nominalSliceSize) - prePadded.length
-       const padding = Array(Math.round(3/4*delta)).join("x"); // base64 is 4/3 larger than its input
-       return "D:" + b64encode(encoder.encode(JSON.stringify({...descriptor, padding: padding})), undefined, undefined)
+        const delta = marshaledNominalSlizeSize(nominalSliceSize) - prePadded.length
+        const padding = Array(Math.round(3 / 4 * delta)).join("x"); // base64 is 4/3 larger than its input
+        return "D:" + b64encode(encoder.encode(JSON.stringify({ ...descriptor, padding: padding })), undefined, undefined)
     } else {
         console.warn("Descriptor longer than slice.")
         return prePadded
@@ -147,7 +147,7 @@ export const marshalDescriptor = (descriptor: Descriptor, nominalSliceSize: numb
 }
 
 export const unmarshalDescriptor = (data: string) => {
-    if (! data.startsWith("D:")) {
+    if (!data.startsWith("D:")) {
         throw Error("Not a descriptor")
     } else {
         const [, payload] = data.split(":", 2);
@@ -175,7 +175,7 @@ export const marshalSlice = async (file: File, sliceSize: number, sliceIdentifie
         const slice = getSlice(file, sliceSize, v);
         const arrayBuffer = await slice.arrayBuffer();
         const asUint8 = new Uint8Array(arrayBuffer);
-        for (let i=0; i<sliceSize; i++) {
+        for (let i = 0; i < sliceSize; i++) {
             if (i < asUint8.length) {
                 payload[i] = payload[i] ^ asUint8[i];
             }
@@ -192,7 +192,7 @@ export const marshalSlice = async (file: File, sliceSize: number, sliceIdentifie
 }
 
 export const unmarshalSlice = (data: string): Slice => {
-    if (! data.startsWith("P:")) {
+    if (!data.startsWith("P:")) {
         throw Error("Not a data slice")
     } else {
         const [, sliceIdentifiers, payload, ...rest] = data.split(":")
@@ -207,7 +207,7 @@ export const unmarshalSlice = (data: string): Slice => {
 export const xor = (a: Uint8Array, b: Uint8Array): Uint8Array => {
     const decodedPayload = new Uint8Array(Math.max(a.length, b.length))
     decodedPayload.fill(0)
-    for (let i=0; i < decodedPayload.length; i++) {
+    for (let i = 0; i < decodedPayload.length; i++) {
         if (i < a.length && i < b.length) {
             decodedPayload[i] = a[i] ^ b[i]
         } else if (i < a.length) {
@@ -221,9 +221,9 @@ export const xor = (a: Uint8Array, b: Uint8Array): Uint8Array => {
 
 export const uniqueIdentifiers = (a: number[], b: number[]): number[] => {
     return [...a, ...b].filter((e) => {
-            return (a.indexOf(e) === -1 && b.indexOf(e) !== -1) || (
-                a.indexOf(e) !== -1 && b.indexOf(e) === -1
-            )
+        return (a.indexOf(e) === -1 && b.indexOf(e) !== -1) || (
+            a.indexOf(e) !== -1 && b.indexOf(e) === -1
+        )
     }).sort()
 }
 
@@ -262,7 +262,7 @@ export const addEquation = (store: SliceStore, slice: Slice) => {
     }
 }
 
-export const isDetermined = (store: SliceStore): boolean =>  {
+export const isDetermined = (store: SliceStore): boolean => {
     for (const slice of store) {
         if (slice.identifiers.length === 0) {
             return false
@@ -272,7 +272,7 @@ export const isDetermined = (store: SliceStore): boolean =>  {
 }
 
 export const determinedSliceIndices = (store: SliceStore): number[] => {
-    return store.map((slice, index) => { return {s: slice, i: index} as {s: Slice, i: number} }).filter((v) => v.s.identifiers.length !== 0).map((v) => v.i)
+    return store.map((slice, index) => { return { s: slice, i: index } as { s: Slice, i: number } }).filter((v) => v.s.identifiers.length !== 0).map((v) => v.i)
 }
 
 export const determinedPercentage = (store: SliceStore): number => {
@@ -293,23 +293,23 @@ export const reduce = (store: SliceStore) => {
         }
         while (store[i].identifiers.length > 1) {
             const nextId = store[i].identifiers.filter((e) => e !== i)[0]
-            store[i] = xorSlice(store[i], store[nextId])   
+            store[i] = xorSlice(store[i], store[nextId])
         }
     }
 }
 
 const mergeUint8Array = (a: Uint8Array, b: Uint8Array): Uint8Array => {
-  const c = new Uint8Array(a.length + b.length);
-  c.set(a);
-  c.set(b, a.length);
-  return c;
+    const c = new Uint8Array(a.length + b.length);
+    c.set(a);
+    c.set(b, a.length);
+    return c;
 };
 
 export const assemblePayload = (store: SliceStore, descriptor: Descriptor): Blob | null => {
     if (isDetermined(store)) {
         reduce(store);
         let all = new Uint8Array(0);
-        store.filter((s) => s.identifiers.length === 1).sort((a,b) => {
+        store.filter((s) => s.identifiers.length === 1).sort((a, b) => {
             return (a.identifiers[0]) - (b.identifiers[0])
         }).forEach((s) => {
             all = mergeUint8Array(all, s.payload);

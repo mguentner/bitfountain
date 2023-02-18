@@ -80,7 +80,7 @@ export const Transmitter: FunctionComponent = () => {
 
   useInterval(async () => {
     if (file && processing === false) {
-      if (count % Math.round(getMaxSliceCount(file, sliceCount) * 0.05) === 0) {
+      if (count % 50 === 0) {
         const descriptor = getDescriptor(file, sha256, sliceSize);
         const marshaled = marshalDescriptor(descriptor, sliceSize);
         setData(marshaled);
